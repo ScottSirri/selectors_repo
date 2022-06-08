@@ -6,6 +6,16 @@ int progress = 0;
 
 int main(int argc, char *argv[]) {
 
+    if(argc < 4 || argc > 5) {
+        printf("usage: sel [n] [k] [r] (u)\n");
+        printf("       n- alphabet size\n");
+        printf("       k- subset size\n");
+        printf("       r- minimum number of selected elements\n");
+        printf("       u- upper limit on size of selectors displayed (may be "
+                "more interesting to see selectors of size less than n)\n");
+        return -1;
+    }
+
     int upper_len = N - 1;
     if(argc >= 4) {
         N = atoi(argv[1]);
