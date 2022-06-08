@@ -56,8 +56,11 @@ int main(int argc, char *argv[]) {
 
 // "Increments" the selector like a binary integer
 int incr_sel(sel *old_sel, int first_time) {
+
+    // Only takes this path exactly once, while examining the first selector
     if(first_time == YES) {
 
+        // Only reaches this malloc once
         old_sel->family = (int**) malloc(sizeof(int*) * N);
         int i;
         for(i = 0; i < N; ++i) {
