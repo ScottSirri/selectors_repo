@@ -97,37 +97,29 @@ int incr_sel_recurs(sel *old_sel, int ind) {
 
 // "Increments" the testing array
 int next_arr(int k_arr[K], int *level) {
+
     int i;
+    // Initialization
     if(k_arr[0] == -1) {
         for(i = 0; i < K; ++i) k_arr[i] = i + 1;
-        //printf("\tdefault arr\n");
         return 0;
     } 
 
-    // Increment the rightmost element that's possible to increment
-    // Fails if all K elements are all the way, consecutive, to the right
+    // Increment the rightmost element that's possible to increment and reset
+    // those to its right if there's overflow
     for(i = K-1; i >= 0; --i) {
         if(k_arr[i] < N && (i == K-1 || k_arr[i] < k_arr[i + 1] - 1)) {
+
             k_arr[i]++;
-            //printf("\tincremented arr\n");
+
+            int j;
+            for(j = i + 1; j <= K-1; ++j) k_arr[j] = k_arr[i] + (j - i);
+
             return 0;
         }
     }
 
-    // Reset to the next cluster of K consecutive but starting one element 
-    // higher than last iteration
-    (*level) += 1;
-
-    if(*level >= N - K) {
-        return -1;
-    }
-
-    for(i = *level; i - *level < K; ++i) {
-        //printf("\treset arr\n");
-        k_arr[i - *level] = i;
-    }
-
-    return 0;
+    return -1;
 }
 
 // Returns whether this is an (N,K,R)-selector
@@ -165,7 +157,7 @@ int is_sel(sel *in) {
 // Prints a representation of the passed selector
 void print_sel(sel *p) {
     int set, elem;
-    printf("%d\n", p->len);
+    printf("(%d, %d, %d)-selector of length %d\n", N, K, R, p->len);
     for(set = 0; set < N; ++set) {
         printf("[ ");
         for(elem = 0; elem < N; ++elem) {
