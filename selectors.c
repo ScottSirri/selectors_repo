@@ -4,25 +4,44 @@
 
 int progress = 0;
 
+
 int main(int argc, char *argv[]) {
 
-    if(argc < 4 || argc > 5) {
-        printf("usage: sel [n] [k] [r] (u)\n");
+    if(argc < 4 || argc > 6) {
+        printf("usage: sel [n] [k] [r] (u) (i)\n");
         printf("       n- alphabet size\n");
         printf("       k- subset size\n");
         printf("       r- minimum number of selected elements\n");
         printf("       u- upper limit on size of selectors displayed (may be "
                 "more interesting to see selectors of size less than n)\n");
+        printf("       i- 'y' if you want to only display \"interesting\" "
+                "selectors (those with some set containing more than one "
+                "element\n");
         return -1;
     }
 
     int upper_len = N;
+
+    // 'y' if you only want to print interesting selectors (have some set with
+    // more than one element), 'n' otherwise
+    char interest = 'n';
+
     if(argc >= 4) {
         N = atoi(argv[1]);
         upper_len = N;
         K = atoi(argv[2]);
         R = atoi(argv[3]);
-        if(argc == 5) upper_len = atoi(argv[4]);
+        if(argc == 5) {
+            if('0' <= argv[4][0] && argv[4][0] <= '9') {
+                upper_len = atoi(argv[4]);
+            } else if('A' <= argv[4][0] && argv[4][0] <= 'z') {
+                interest = argv[4][0];
+            }
+        }
+        if(argc == 6) {
+            upper_len = atoi(argv[4]);
+            interest = argv[5][0];
+        }
     }
 
     if(R <= 0 || R > K || K > N) {
@@ -45,8 +64,7 @@ int main(int argc, char *argv[]) {
     while(1) {
 
         if(temp_sel.len <= upper_len && is_sel(&temp_sel) == YES) {
-            print_sel(&temp_sel);
-            printf("\n\n");
+            print_sel(&temp_sel, interest);
             ++ct;
         } /*else {
             printf("PHONY SEL\n");
@@ -197,16 +215,34 @@ int intersect(int a[N], int b[K]) {
 }
 
 // Prints a representation of the passed selector
-void print_sel(sel *p) {
+void print_sel(sel *p, char onlyPrintInteresting) {
+    int interesting = NO;
     int set, elem;
+
+    if(onlyPrintInteresting == 'y') {
+        for(set = 0; set < N; ++set) {
+            int numElems = 0;
+            for(elem = 0; elem < N; ++elem) {
+                if(p->family[set][elem] == YES) {
+                    ++numElems;
+                }
+                if(numElems > 1) interesting = YES;
+            }
+        }
+        if(interesting == NO) return;
+    }
+
     printf("(%d, %d, %d)-selector of length %d\n", N, K, R, p->len);
     for(set = 0; set < N; ++set) {
         printf("[ ");
         for(elem = 0; elem < N; ++elem) {
-            if(p->family[set][elem] == YES) printf("%d ", elem + 1);
+            if(p->family[set][elem] == YES) {
+                printf("%d ", elem + 1);
+            }
         }
         printf("]\n");
     }
+    printf("\n\n");
 }
 
 // Returns log base 2 rounded up

@@ -12,7 +12,7 @@ typedef struct selector {
     int len; 
 } sel;
 
-void print_sel(sel *p);
+void print_sel(sel *p, char printOnlyInteresting);
 int count_sets(sel *in);
 int incr_sel_recurs(sel *old_sel, int ind);
 int incr_sel(sel *old_sel, int first_time);
