@@ -16,10 +16,10 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int upper_len = N - 1;
+    int upper_len = N;
     if(argc >= 4) {
         N = atoi(argv[1]);
-        upper_len = N - 1;
+        upper_len = N;
         K = atoi(argv[2]);
         R = atoi(argv[3]);
         if(argc == 5) upper_len = atoi(argv[4]);
@@ -38,19 +38,21 @@ int main(int argc, char *argv[]) {
 
     int ct = 0;
     while(1) {
+
         if(temp_sel.len <= upper_len && is_sel(&temp_sel) == YES) {
             print_sel(&temp_sel);
             printf("\n\n");
             ++ct;
-        }
+        } /*else {
+            printf("PHONY SEL\n");
+            print_sel(&temp_sel);
+            printf("\n\n================================\n\n");
+        }*/
 
         if(incr_sel(&temp_sel, NO) == -1) break;
     }
 
-    printf("Last considered: \n");
-    print_sel(&temp_sel);
-
-    printf("Completed! %d\n", ct);
+    printf("Completed! %d specified selectors found\n", ct);
 	return 0;
 }
 
@@ -74,7 +76,7 @@ int incr_sel(sel *old_sel, int first_time) {
     }
 
     int ind = N*N - 1;
-    int ret = incr_sel_recurs(old_sel, N*N - 1);
+    int ret = incr_sel_recurs(old_sel, ind);
     old_sel->len = count_sets(old_sel);
     return ret;
 }
@@ -82,10 +84,13 @@ int incr_sel(sel *old_sel, int first_time) {
 int incr_sel_recurs(sel *old_sel, int ind) {
     if(old_sel->family[ind/N][ind%N] == NO) {
         old_sel->family[ind/N][ind%N] = YES;
+
+        // Progress output
         if(ind == 4) {
             printf("Progress: %d%%\n", (int)(6.25*progress));
             progress++;
         }
+
     } else {
         if(ind == 0) return -1;
         old_sel->family[ind/N][ind%N] = NO;
@@ -124,13 +129,16 @@ int next_arr(int k_arr[K], int *level) {
 
 // Returns whether this is an (N,K,R)-selector
 int is_sel(sel *in) {
-    //printf("testing sel\n");
     int k_arr[K]; // Array of the elements in the K-subset of [N]
     int i, j, level = 0;
     for(i = 0; i < K; ++i) k_arr[i] = -1;
 
     while(1) {
         int ret = next_arr(k_arr, &level);
+
+        /*printf("k_arr: ");
+        for(i = 0; i < K; ++i) printf("%d ", k_arr[i]);*/
+
         if(ret == -1) break;
 
         int num_selects = 0;
@@ -139,19 +147,48 @@ int is_sel(sel *in) {
         for(i = 0; i < N; ++i) selections[i] = NO;
 
         for(j = 0; j < N; ++j) {
+
+            //printf("{checking sel array %d}", j);
+            
             // If they intersect in exactly one element,
             if((selected_elem = intersect(in->family[j], k_arr)) != -1) {
                 // If this element hasn't been selected before, increment
-                if(selections[selected_elem - 1] == NO) num_selects++;
+                if(selections[selected_elem - 1] == NO) {
+                    //printf(" (intersets %d) ", selected_elem);
+                    num_selects++;
+                }
                 selections[selected_elem - 1] = YES;
             }
         }
         if(num_selects < R) {
+            //printf("\n");
             return NO;
         }
+        //printf("\n");
     }
 
     return YES;
+}
+
+// Returns -1 if intersection size is not exactly 1, returns the selected
+// element otherwise
+int intersect(int a[N], int b[K]) {
+    int intersection = -1;
+    int i, j;
+    for(i = 0; i < K; ++i) {
+        if(a[b[i] - 1] == YES) {
+            /*printf("[");
+            for(j = 0; j < N; ++j) printf("%d,", a[j]);
+            printf(" overlap %d]", b[i]);*/
+            if(intersection != -1) {
+                //printf(" {>1 intersection} ");
+                return -1;
+            }
+            intersection = b[i];
+        }
+    }
+    //if(intersection == -1) printf(" {0 intersections} ");
+    return intersection;
 }
 
 // Prints a representation of the passed selector
@@ -175,20 +212,6 @@ int my_log(unsigned int num) {
         num = num>>1;
     }
     return l;
-}
-
-// Returns -1 if intersection size is not exactly 1, returns the selected
-// element otherwise
-int intersect(int a[N], int b[K]) {
-    int intersection = -1;
-    int i;
-    for(i = 0; i < K; ++i) {
-        if(a[b[i] - 1] == YES) {
-            if(intersection != -1) return -1;
-            intersection = b[i];
-        }
-    }
-    return intersection;
 }
 
 // Count the number of nonempty sets in the passed selector
