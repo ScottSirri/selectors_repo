@@ -30,6 +30,11 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    if(upper_len > N || upper_len <= 0) {
+        printf("Be aware you set the upper limit on size of selectors "
+                "displayed to %d\n", upper_len);
+    }
+
 
     printf("Starting\n");	
 
