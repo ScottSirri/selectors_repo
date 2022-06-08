@@ -1,50 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "selectors.h"
 
-/*int N = 4;
-int K = 3;
-int R = 3;*/
-
-#define N 5
-#define K 3
-#define R 2
-
-#define YES 1
-#define NO  0
-#define MASK 0x0000000000000001
-
-int upper_len = N - 1;
 int progress = 0;
 
-typedef struct selector { 
-    int family[N][N];
-    int len; 
-} sel;
+int main(int argc, char *argv[]) {
 
-// Prints a representation of the passed selector
-void print_sel(sel *p) {
-    int set, elem;
-    printf("%d\n", p->len);
-    for(set = 0; set < N; ++set) {
-        printf("[ ");
-        for(elem = 0; elem < N; ++elem) {
-            if(p->family[set][elem] == YES) printf("%d ", elem + 1);
-        }
-        printf(" ]\n");
+    int upper_len = N - 1;
+    if(argc >= 4) {
+        N = atoi(argv[1]);
+        upper_len = N - 1;
+        K = atoi(argv[2]);
+        R = atoi(argv[3]);
+        if(argc == 5) upper_len = atoi(argv[4]);
     }
+
+    if(R <= 0 || R > K || K > N) {
+        printf("Invalid n, k, r parameters\n");
+        return -1;
+    }
+
+
+    printf("Starting\n");	
+
+    sel temp_sel;
+    incr_sel(&temp_sel, YES);
+
+    int ct = 0;
+    while(1) {
+        if(temp_sel.len <= upper_len && is_sel(&temp_sel) == YES) {
+            print_sel(&temp_sel);
+            printf("\n\n");
+            ++ct;
+        }
+
+        if(incr_sel(&temp_sel, NO) == -1) break;
+    }
+
+    printf("Last considered: \n");
+    print_sel(&temp_sel);
+
+    printf("Completed! %d\n", ct);
+	return 0;
 }
 
-int count_sets(sel *in) {
-    int ct = 0;
-    int i, j;
-    for(i = 0; i < N; ++i) {
-        int empty = YES;
-        for(j = 0; j < N; ++j) {
-            if(in->family[i][j] == YES) empty = NO;
+// "Increments" the selector like a binary integer
+int incr_sel(sel *old_sel, int first_time) {
+    if(first_time == YES) {
+
+        old_sel->family = (int**) malloc(sizeof(int*) * N);
+        int i;
+        for(i = 0; i < N; ++i) {
+            old_sel->family[i] = (int*) malloc(sizeof(int) * N);
         }
-        if(empty == NO) ++ct;
+
+        for(i = 0; i < N * N; ++i) old_sel->family[i/N][i%N] = NO;
+
+        old_sel->len = 0;
+        return 0;
     }
-    return ct;
+
+    int ind = N*N - 1;
+    int ret = incr_sel_recurs(old_sel, N*N - 1);
+    old_sel->len = count_sets(old_sel);
+    return ret;
 }
 
 int incr_sel_recurs(sel *old_sel, int ind) {
@@ -61,46 +80,6 @@ int incr_sel_recurs(sel *old_sel, int ind) {
     }
 
     return 0;
-}
-
-// "Increments" the selector like a binary integer
-int incr_sel(sel *old_sel, int first_time) {
-    if(first_time == YES) {
-        int i;
-        for(i = 0; i < N * N; ++i) old_sel->family[i/N][i%N] = NO;
-        old_sel->len = 0;
-        return 0;
-    }
-
-    int ind = N*N - 1;
-    int ret = incr_sel_recurs(old_sel, N*N - 1);
-    old_sel->len = count_sets(old_sel);
-    return ret;
-}
-
-
-// Returns log base 2 rounded up
-int my_log(unsigned int num) {
-    int l = 0;
-    while(num > 0) {
-        ++l;
-        num = num>>1;
-    }
-    return l;
-}
-
-// Returns -1 if intersection size is not exactly 1, returns the selected
-// element otherwise
-int intersect(int a[N], int b[K]) {
-    int intersection = -1;
-    int i;
-    for(i = 0; i < K; ++i) {
-        if(a[b[i] - 1] == YES) {
-            if(intersection != -1) return -1;
-            intersection = b[i];
-        }
-    }
-    return intersection;
 }
 
 // "Increments" the testing array
@@ -155,7 +134,7 @@ int is_sel(sel *in) {
         for(i = 0; i < N; ++i) selections[i] = NO;
 
         for(j = 0; j < N; ++j) {
-            // If they intersect in at exactly one element,
+            // If they intersect in exactly one element,
             if((selected_elem = intersect(in->family[j], k_arr)) != -1) {
                 // If this element hasn't been selected before, increment
                 if(selections[selected_elem - 1] == NO) num_selects++;
@@ -170,41 +149,53 @@ int is_sel(sel *in) {
     return YES;
 }
 
-int main(int argc, char *argv[]) {
-
-    /*if(argc >= 4) {
-        N = atoi(argv[1]);
-        K = atoi(argv[2]);
-        R = atoi(argv[3]);
-    }*/
-
-    if(R <= 0 || R > K || K > N) {
-        printf("Invalid n, k, r parameters\n");
-        return -1;
-    }
-
-    if(argc == 2) upper_len = atoi(argv[1]);
-
-    printf("Starting\n");	
-
-    sel temp_sel;
-    incr_sel(&temp_sel, YES);
-
-    int ct = 0;
-    while(1) {
-        if(temp_sel.len <= upper_len && is_sel(&temp_sel) == YES) {
-            print_sel(&temp_sel);
-            printf("\n\n");
-            ++ct;
+// Prints a representation of the passed selector
+void print_sel(sel *p) {
+    int set, elem;
+    printf("%d\n", p->len);
+    for(set = 0; set < N; ++set) {
+        printf("[ ");
+        for(elem = 0; elem < N; ++elem) {
+            if(p->family[set][elem] == YES) printf("%d ", elem + 1);
         }
-        /*print_sel(&temp_sel);
-        printf("\n\n00000000000000000 NEXT 0000000000000\n\n");*/
-        if(incr_sel(&temp_sel, NO) == -1) break;
+        printf("]\n");
     }
+}
 
-    printf("Last considered: \n");
-    print_sel(&temp_sel);
+// Returns log base 2 rounded up
+int my_log(unsigned int num) {
+    int l = 0;
+    while(num > 0) {
+        ++l;
+        num = num>>1;
+    }
+    return l;
+}
 
-    printf("Completed! %d\n", ct);
-	return 0;
+// Returns -1 if intersection size is not exactly 1, returns the selected
+// element otherwise
+int intersect(int a[N], int b[K]) {
+    int intersection = -1;
+    int i;
+    for(i = 0; i < K; ++i) {
+        if(a[b[i] - 1] == YES) {
+            if(intersection != -1) return -1;
+            intersection = b[i];
+        }
+    }
+    return intersection;
+}
+
+// Count the number of nonempty sets in the passed selector
+int count_sets(sel *in) {
+    int ct = 0;
+    int i, j;
+    for(i = 0; i < N; ++i) {
+        int empty = YES;
+        for(j = 0; j < N; ++j) {
+            if(in->family[i][j] == YES) empty = NO;
+        }
+        if(empty == NO) ++ct;
+    }
+    return ct;
 }
