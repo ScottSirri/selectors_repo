@@ -4,6 +4,13 @@
 
 int progress = 0;
 
+/* If RANDOM_SELS = YES, then it progresses through selectors in a random order
+   and never halts. If it's NO, then it treats the selector as a binary integer
+   and methodically tries each, eventually halting after evaluating all
+   possible selectors for this set of parameters.
+   Useful for if you want a broad survey of selectors for large n
+*/
+#define RANDOM_SELS NO
 
 int main(int argc, char *argv[]) {
 
@@ -14,7 +21,7 @@ int main(int argc, char *argv[]) {
         printf("       r- minimum number of selected elements\n");
         printf("       u- upper limit on size of selectors displayed (may be "
                 "more interesting to see selectors of size less than n)\n");
-        printf("       i- 'y' if you want to only display \"interesting\" "
+        printf("       i- 'i' if you want to only display \"interesting\" "
                 "selectors (those with some set containing more than one "
                 "element\n");
         return -1;
@@ -22,7 +29,7 @@ int main(int argc, char *argv[]) {
 
     int upper_len = N;
 
-    // 'y' if you only want to print interesting selectors (have some set with
+    // 'i' if you only want to print interesting selectors (have some set with
     // more than one element), 'n' otherwise
     char interest = 'n';
 
@@ -75,7 +82,10 @@ int main(int argc, char *argv[]) {
         if(incr_sel(&temp_sel, NO) == -1) break;
     }
 
-    printf("Completed! %d specified selectors found\n", ct);
+    printf("Completed! %d specified selectors found", ct);
+    if(interest == 'i') printf(" (not all may have been printed due to "
+            "interest setting)");
+    printf("\n");
 	return 0;
 }
 
@@ -98,6 +108,28 @@ int incr_sel(sel *old_sel, int first_time) {
         return 0;
     }
 
+    if(RANDOM_SELS == YES) {
+        old_sel->len = 0;
+        int i;
+        int len_incr_already;
+        int ran;
+        for(i = 0; i < N*N; ++i) {
+
+            if(i % N == 0) len_incr_already = NO;
+
+            ran = rand();
+            if(ran % 2 == 0) old_sel->family[i/N][i%N] = NO;
+            else {
+                old_sel->family[i/N][i%N] = YES;
+                if(len_incr_already == NO) {
+                    old_sel->len += 1;
+                    len_incr_already = YES;
+                }
+            }
+        }
+        return 0;
+    }
+
     int ind = N*N - 1;
     int ret = incr_sel_recurs(old_sel, ind);
     old_sel->len = count_sets(old_sel);
@@ -110,7 +142,7 @@ int incr_sel_recurs(sel *old_sel, int ind) {
 
         // Progress output
         if(ind == 4) {
-            printf("Progress: %d%%\n", (int)(6.25*progress));
+            printf("\t\t\t\t\t\tProgress: %d%%\n", (int)(6.25*progress));
             progress++;
         }
 
@@ -219,7 +251,7 @@ void print_sel(sel *p, char onlyPrintInteresting) {
     int interesting = NO;
     int set, elem;
 
-    if(onlyPrintInteresting == 'y') {
+    if(onlyPrintInteresting == 'i') {
         for(set = 0; set < N; ++set) {
             int numElems = 0;
             for(elem = 0; elem < N; ++elem) {
