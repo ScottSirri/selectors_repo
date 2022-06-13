@@ -12,6 +12,8 @@ int progress = 0;
 */
 #define RANDOM_SELS NO
 
+#define REDUCIBLE NO
+
 int main(int argc, char *argv[]) {
 
     if(argc < 4 || argc > 6) {
@@ -66,18 +68,19 @@ int main(int argc, char *argv[]) {
 
     sel temp_sel;
     incr_sel(&temp_sel, YES);
+    int ret;
 
     int ct = 0;
     while(1) {
 
-        if(temp_sel.len <= upper_len && is_sel(&temp_sel) == YES) {
+        if(REDUCIBLE == NO && temp_sel.len <= upper_len && 
+                is_sel(&temp_sel) == YES) {
             print_sel(&temp_sel, interest);
             ++ct;
-        } /*else {
-            printf("PHONY SEL\n");
-            print_sel(&temp_sel);
-            printf("\n\n================================\n\n");
-        }*/
+        } else if(REDUCIBLE == YES && temp_sel.len <= upper_len) {
+            int i;
+           //***************************************************** 
+        }
 
         if(incr_sel(&temp_sel, NO) == -1) break;
     }
@@ -189,11 +192,8 @@ int is_sel(sel *in) {
     for(i = 0; i < K; ++i) k_arr[i] = -1;
 
     while(1) {
+
         int ret = next_arr(k_arr, &level);
-
-        /*printf("k_arr: ");
-        for(i = 0; i < K; ++i) printf("%d ", k_arr[i]);*/
-
         if(ret == -1) break;
 
         int num_selects = 0;
@@ -203,23 +203,19 @@ int is_sel(sel *in) {
 
         for(j = 0; j < N; ++j) {
 
-            //printf("{checking sel array %d}", j);
             
             // If they intersect in exactly one element,
             if((selected_elem = intersect(in->family[j], k_arr)) != -1) {
                 // If this element hasn't been selected before, increment
                 if(selections[selected_elem - 1] == NO) {
-                    //printf(" (intersets %d) ", selected_elem);
                     num_selects++;
                 }
                 selections[selected_elem - 1] = YES;
             }
         }
         if(num_selects < R) {
-            //printf("\n");
             return NO;
         }
-        //printf("\n");
     }
 
     return YES;
@@ -266,11 +262,18 @@ void print_sel(sel *p, char onlyPrintInteresting) {
 
     printf("(%d, %d, %d)-selector of length %d\n", N, K, R, p->len);
     for(set = 0; set < N; ++set) {
+        int cntr = 0;
         printf("[ ");
         for(elem = 0; elem < N; ++elem) {
             if(p->family[set][elem] == YES) {
                 printf("%d ", elem + 1);
-            }
+            } else cntr++;
+        }
+        printf("]   %*s", cntr*2, "[ ");
+        for(elem = 0; elem < N; ++elem) {
+            if(p->family[set][elem] == YES) {
+                printf("1 ");
+            } else printf("0 ");
         }
         printf("]\n");
     }
