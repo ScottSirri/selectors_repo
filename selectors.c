@@ -29,7 +29,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int upper_len = N;
+    int N, K, R, upper_len;
+
 
     // 'i' if you only want to print interesting selectors (have some set with
     // more than one element), 'n' otherwise
@@ -67,22 +68,31 @@ int main(int argc, char *argv[]) {
     printf("Starting\n");	
 
     sel temp_sel;
-    incr_sel(&temp_sel, YES);
+    incr_sel(&temp_sel, YES, N);
     int ret;
 
     int ct = 0;
     while(1) {
 
         if(REDUCIBLE == NO && temp_sel.len <= upper_len && 
-                is_sel(&temp_sel) == YES) {
-            print_sel(&temp_sel, interest);
+                is_sel(&temp_sel, N, K, R) == YES) {
+            print_sel(&temp_sel, interest, N, K, R);
             ++ct;
         } else if(REDUCIBLE == YES && temp_sel.len <= upper_len) {
-            int i;
+            int i, is_red = YES;
+            for(i = N; i > 0; --i) {
+                int r = ceiling((((double) R) / K) * i);
+                if(is_sel(&temp_sel, N, i, r) == NO) is_red = NO;
+            }
+
+            if(is_red == YES) {
+                print_sel(&temp_sel, interest, N, K, R);
+                ++ct;
+            }
            //***************************************************** 
         }
 
-        if(incr_sel(&temp_sel, NO) == -1) break;
+        if(incr_sel(&temp_sel, NO, N) == -1) break;
     }
 
     printf("Completed! %d specified selectors found", ct);
@@ -92,8 +102,13 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
+int ceiling(double d) {
+    if(d - (int) d < EPSILON) return (int) d;
+    return (int) (d + 1);
+}
+
 // "Increments" the selector like a binary integer
-int incr_sel(sel *old_sel, int first_time) {
+int incr_sel(sel *old_sel, int first_time, int N) {
 
     // Only takes this path exactly once, while examining the first selector
     if(first_time == YES) {
@@ -134,12 +149,12 @@ int incr_sel(sel *old_sel, int first_time) {
     }
 
     int ind = N*N - 1;
-    int ret = incr_sel_recurs(old_sel, ind);
-    old_sel->len = count_sets(old_sel);
+    int ret = incr_sel_recurs(old_sel, ind, N);
+    old_sel->len = count_sets(old_sel, N);
     return ret;
 }
 
-int incr_sel_recurs(sel *old_sel, int ind) {
+int incr_sel_recurs(sel *old_sel, int ind, int N) {
     if(old_sel->family[ind/N][ind%N] == NO) {
         old_sel->family[ind/N][ind%N] = YES;
 
@@ -152,14 +167,14 @@ int incr_sel_recurs(sel *old_sel, int ind) {
     } else {
         if(ind == 0) return -1;
         old_sel->family[ind/N][ind%N] = NO;
-        return incr_sel_recurs(old_sel, ind - 1);
+        return incr_sel_recurs(old_sel, ind - 1, N);
     }
 
     return 0;
 }
 
 // "Increments" the testing array
-int next_arr(int k_arr[K], int *level) {
+int next_arr(int *k_arr, int *level, int N, int K) {
 
     int i;
     // Initialization
@@ -186,14 +201,14 @@ int next_arr(int k_arr[K], int *level) {
 }
 
 // Returns whether this is an (N,K,R)-selector
-int is_sel(sel *in) {
+int is_sel(sel *in, int N, int K, int R) {
     int k_arr[K]; // Array of the elements in the K-subset of [N]
     int i, j, level = 0;
     for(i = 0; i < K; ++i) k_arr[i] = -1;
 
     while(1) {
 
-        int ret = next_arr(k_arr, &level);
+        int ret = next_arr(k_arr, &level, N, K);
         if(ret == -1) break;
 
         int num_selects = 0;
@@ -205,7 +220,7 @@ int is_sel(sel *in) {
 
             
             // If they intersect in exactly one element,
-            if((selected_elem = intersect(in->family[j], k_arr)) != -1) {
+            if((selected_elem = intersect(in->family[j], k_arr, N, K)) != -1) {
                 // If this element hasn't been selected before, increment
                 if(selections[selected_elem - 1] == NO) {
                     num_selects++;
@@ -221,9 +236,11 @@ int is_sel(sel *in) {
     return YES;
 }
 
-// Returns -1 if intersection size is not exactly 1, returns the selected
-// element otherwise
-int intersect(int a[N], int b[K]) {
+/* Returns -1 if intersection size is not exactly 1, returns the selected
+   element otherwise
+   a is an array of N integers, b is an array of K integers
+*/
+int intersect(int *a, int *b, int N, int K) {
     int intersection = -1;
     int i, j;
     for(i = 0; i < K; ++i) {
@@ -243,7 +260,7 @@ int intersect(int a[N], int b[K]) {
 }
 
 // Prints a representation of the passed selector
-void print_sel(sel *p, char onlyPrintInteresting) {
+void print_sel(sel *p, char onlyPrintInteresting, int N, int K, int R) {
     int interesting = NO;
     int set, elem;
 
@@ -260,16 +277,17 @@ void print_sel(sel *p, char onlyPrintInteresting) {
         if(interesting == NO) return;
     }
 
+    if(REDUCIBLE == YES) printf("Reducible ");
     printf("(%d, %d, %d)-selector of length %d\n", N, K, R, p->len);
     for(set = 0; set < N; ++set) {
-        int cntr = 0;
+        int no_cntr = 0;
         printf("[ ");
         for(elem = 0; elem < N; ++elem) {
             if(p->family[set][elem] == YES) {
                 printf("%d ", elem + 1);
-            } else cntr++;
+            } else no_cntr++;
         }
-        printf("]   %*s", cntr*2, "[ ");
+        printf("]%*s", 3 + no_cntr*2, "[ ");
         for(elem = 0; elem < N; ++elem) {
             if(p->family[set][elem] == YES) {
                 printf("1 ");
@@ -291,7 +309,7 @@ int my_log(unsigned int num) {
 }
 
 // Count the number of nonempty sets in the passed selector
-int count_sets(sel *in) {
+int count_sets(sel *in, int N) {
     int ct = 0;
     int i, j;
     for(i = 0; i < N; ++i) {
